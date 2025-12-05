@@ -1,11 +1,10 @@
 import 'package:go_router/go_router.dart';
+
 import '../features/winglets/screens/cart_screen.dart';
 import '../features/winglets/screens/history_screen.dart';
 import '../features/winglets/screens/order_screen.dart';
 import '../features/winglets/screens/product_list_screen.dart';
 import '../features/winglets/screens/stock_manage_screen.dart';
-import '../features/winglets/services/data_service.dart';
-import 'service_locator.dart';
 
 final GoRouter appRouter = GoRouter(
   initialLocation: '/products',
@@ -18,28 +17,17 @@ final GoRouter appRouter = GoRouter(
     GoRoute(
       path: '/order',
       name: 'order',
-      builder: (context, state) {
-        final data = getIt<DataService>();
-        return OrderScreen(dataService: data);
-      },
+      builder: (context, state) => const OrderScreen(),
     ),
     GoRoute(
       path: '/cart',
       name: 'cart',
-      builder: (context, state) {
-        final data = getIt<DataService>();
-        final order =
-            state.extra as Map<String, dynamic>? ?? <String, dynamic>{};
-        return CartScreen(order: order, dataService: data);
-      },
+      builder: (context, state) => const CartScreen(),
     ),
     GoRoute(
       path: '/stock',
       name: 'stock',
-      builder: (context, state) {
-        final data = getIt<DataService>();
-        return StockManageScreen(dataService: data);
-      },
+      builder: (context, state) => const StockManageScreen(),
     ),
     GoRoute(
       path: '/history',

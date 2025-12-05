@@ -1,48 +1,46 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import '../services/data_service.dart';
 
-class StockManageScreen extends StatefulWidget {
-  final DataService dataService;
-  const StockManageScreen({super.key, required this.dataService});
+import '../providers/product_list_provider.dart';
+
+class StockManageScreen extends ConsumerStatefulWidget {
+  const StockManageScreen({super.key});
 
   @override
-  State<StockManageScreen> createState() => _StockManageScreenState();
+  ConsumerState<StockManageScreen> createState() => _StockManageScreenState();
 }
 
-class _StockManageScreenState extends State<StockManageScreen> {
-  final TextEditingController nameController = TextEditingController();
-  final TextEditingController quantityController = TextEditingController();
-  String? infoMessage;
+class _StockManageScreenState extends ConsumerState<StockManageScreen> {
+  final nameController = TextEditingController();
+  final qtyController = TextEditingController();
+  String? msg;
 
-  void _addOrRestock() {
+  void _submit() {
     final name = nameController.text.trim();
-    final quantity = int.tryParse(quantityController.text) ?? 0;
+    final qty = int.tryParse(qtyController.text) ?? 0;
 
-    if (name.isEmpty || quantity <= 0) return;
+    if (name.isEmpty || qty <= 0) return;
+
+    final exists = ref
+        .read(productListProvider)
+        .any((p) => p.name.toLowerCase() == name.toLowerCase());
+
+    ref.read(productListProvider.notifier).addOrRestock(name, qty);
 
     setState(() {
-      final existing = widget.dataService.products
-          .any((p) => p.name.toLowerCase() == name.toLowerCase());
-      widget.dataService.addOrRestockProduct(name, quantity);
-      infoMessage = existing
-          ? 'Запас товара "$name" пополнен на $quantity шт.'
-          : 'Добавлен новый товар "$name" ($quantity шт.)';
+      msg = exists
+          ? 'Товар "$name" пополнен на $qty шт.'
+          : 'Добавлен товар "$name" ($qty шт.)';
     });
 
     nameController.clear();
-    quantityController.clear();
-  }
-
-  void _removeProduct(int id) {
-    setState(() {
-      widget.dataService.removeProduct(id);
-    });
+    qtyController.clear();
   }
 
   @override
   Widget build(BuildContext context) {
-    final products = widget.dataService.products;
+    final products = ref.watch(productListProvider);
 
     return Scaffold(
       appBar: AppBar(
@@ -62,38 +60,33 @@ class _StockManageScreenState extends State<StockManageScreen> {
             ),
             const SizedBox(height: 12),
             TextField(
-              controller: quantityController,
+              controller: qtyController,
               decoration: const InputDecoration(labelText: 'Количество'),
               keyboardType: TextInputType.number,
             ),
             const SizedBox(height: 12),
             ElevatedButton(
-              onPressed: _addOrRestock,
-              child: const Text('Добавить / Пополнить товар'),
+              onPressed: _submit,
+              child: const Text('Добавить / Пополнить'),
             ),
-            if (infoMessage != null) ...[
+            if (msg != null) ...[
               const SizedBox(height: 8),
-              Text(
-                infoMessage!,
-                style: const TextStyle(color: Colors.green),
-                textAlign: TextAlign.center,
-              ),
+              Text(msg!, style: const TextStyle(color: Colors.green)),
             ],
-            const Divider(height: 30),
+            const Divider(height: 25),
             Expanded(
               child: ListView.builder(
                 itemCount: products.length,
-                itemBuilder: (context, index) {
-                  final product = products[index];
-                  return ListTile(
-                    title: Text(product.name),
-                    subtitle: Text('Количество: ${product.quantity} шт.'),
-                    trailing: IconButton(
-                      icon: const Icon(Icons.delete, color: Colors.red),
-                      onPressed: () => _removeProduct(product.id),
-                    ),
-                  );
-                },
+                itemBuilder: (_, i) => ListTile(
+                  title: Text(products[i].name),
+                  subtitle: Text('Количество: ${products[i].quantity}'),
+                  trailing: IconButton(
+                    icon: const Icon(Icons.delete, color: Colors.red),
+                    onPressed: () => ref
+                        .read(productListProvider.notifier)
+                        .removeProduct(products[i].id),
+                  ),
+                ),
               ),
             ),
           ],

@@ -1,36 +1,23 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import '../../../app/winglet_provider.dart';
-import '../widgets/product_tile.dart';
-import '../services/data_service.dart';
 
-class ProductListScreen extends StatefulWidget {
+import '../providers/product_list_provider.dart';
+import '../widgets/product_tile.dart';
+
+class ProductListScreen extends ConsumerWidget {
   const ProductListScreen({super.key});
 
   @override
-  State<ProductListScreen> createState() => _ProductListScreenState();
-}
+  Widget build(BuildContext context, WidgetRef ref) {
+    final products = ref.watch(productListProvider);
 
-class _ProductListScreenState extends State<ProductListScreen> {
-  late DataService data;
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    data = WingletProvider.of(context).dataService;
-  }
-
-  void _refresh() => setState(() {});
-
-  @override
-  Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('Каталог подкрылков')),
       body: ListView.builder(
-        itemCount: data.products.length,
-        itemBuilder: (context, index) {
-          return ProductTile(product: data.products[index]);
-        },
+        itemCount: products.length,
+        itemBuilder: (context, index) =>
+            ProductTile(product: products[index]),
       ),
       bottomNavigationBar: BottomAppBar(
         child: Padding(
@@ -41,18 +28,12 @@ class _ProductListScreenState extends State<ProductListScreen> {
               ElevatedButton.icon(
                 icon: const Icon(Icons.shopping_cart),
                 label: const Text('Заказ'),
-                onPressed: () async {
-                  await context.push('/order');
-                  _refresh();
-                },
+                onPressed: () => context.push('/order'),
               ),
               ElevatedButton.icon(
                 icon: const Icon(Icons.inventory),
                 label: const Text('Склад'),
-                onPressed: () async {
-                  await context.push('/stock');
-                  _refresh();
-                },
+                onPressed: () => context.push('/stock'),
               ),
               ElevatedButton.icon(
                 icon: const Icon(Icons.history),

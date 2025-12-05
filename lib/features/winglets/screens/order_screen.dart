@@ -1,50 +1,55 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import '../services/data_service.dart';
 
-class OrderScreen extends StatefulWidget {
-  final DataService dataService;
-  const OrderScreen({super.key, required this.dataService});
+import '../providers/product_list_provider.dart';
+import '../providers/history_provider.dart';
+import '../providers/cart_provider.dart';
+
+class OrderScreen extends ConsumerStatefulWidget {
+  const OrderScreen({super.key});
 
   @override
-  State<OrderScreen> createState() => _OrderScreenState();
+  ConsumerState<OrderScreen> createState() => _OrderScreenState();
 }
 
-class _OrderScreenState extends State<OrderScreen> {
+class _OrderScreenState extends ConsumerState<OrderScreen> {
   int? selectedId;
-  final TextEditingController quantityController = TextEditingController();
-  String? errorMessage;
+  final qtyController = TextEditingController();
+  String? error;
 
-  void _makeOrder() {
-    if (selectedId == null) return;
-    final int quantity = int.tryParse(quantityController.text) ?? 0;
-    if (quantity <= 0) return;
+  void _submit() {
+    final qty = int.tryParse(qtyController.text) ?? 0;
+    if (selectedId == null || qty <= 0) return;
 
-    final product = widget.dataService.findById(selectedId!);
-    if (product == null) return;
+    final products = ref.read(productListProvider);
+    final p = products.firstWhere((x) => x.id == selectedId);
 
-    final success = widget.dataService.updateQuantity(product.id, quantity);
-
-    if (!success) {
-      setState(() {
-        errorMessage =
-        'На складе доступно только ${product.quantity} шт. Вы не можете заказать больше.';
-      });
+    if (qty > p.quantity) {
+      setState(() => error = 'Доступно только ${p.quantity} шт.');
       return;
     }
 
+    ref.read(productListProvider.notifier).order(p.id, qty);
+
     final order = {
-      'id': product.id,
-      'name': product.name,
-      'quantity': quantity,
+      'id': p.id,
+      'name': p.name,
+      'quantity': qty,
       'date': DateTime.now(),
     };
 
-    context.push('/cart', extra: order);
+    ref.read(orderHistoryProvider.notifier).add(order);
+
+    ref.read(cartStateProvider.notifier).setOrder(order);
+
+    context.push('/cart');
   }
 
   @override
   Widget build(BuildContext context) {
+    final products = ref.watch(productListProvider);
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Оформление заказа'),
@@ -58,40 +63,40 @@ class _OrderScreenState extends State<OrderScreen> {
         child: Column(
           children: [
             DropdownButton<int>(
-              isExpanded: true,
-              hint: const Text('Выберите товар'),
               value: selectedId,
-              items: widget.dataService.products.map((p) {
-                return DropdownMenuItem<int>(
+              hint: const Text('Выберите товар'),
+              isExpanded: true,
+              items: products.map((p) {
+                return DropdownMenuItem(
                   value: p.id,
                   child: Text('${p.name} (остаток: ${p.quantity})'),
                 );
               }).toList(),
-              onChanged: (value) => setState(() {
-                selectedId = value;
-                errorMessage = null;
-              }),
+              onChanged: (v) {
+                setState(() {
+                  selectedId = v;
+                  error = null;
+                });
+              },
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 12),
             TextField(
-              controller: quantityController,
-              keyboardType: TextInputType.number,
+              controller: qtyController,
               decoration: const InputDecoration(
                 labelText: 'Количество',
                 border: OutlineInputBorder(),
               ),
+              keyboardType: TextInputType.number,
             ),
-            if (errorMessage != null) ...[
-              const SizedBox(height: 10),
-              Text(
-                errorMessage!,
-                style: const TextStyle(color: Colors.red),
+            if (error != null)
+              Padding(
+                padding: const EdgeInsets.only(top: 10),
+                child: Text(error!, style: const TextStyle(color: Colors.red)),
               ),
-            ],
             const SizedBox(height: 20),
             ElevatedButton(
-              onPressed: _makeOrder,
-              child: const Text('Оформить заказ'),
+              onPressed: _submit,
+              child: const Text('Оформить'),
             ),
           ],
         ),

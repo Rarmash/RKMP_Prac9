@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
 import 'app/app_router.dart';
-import 'app/service_locator.dart';
-import 'app/winglet_provider.dart';
-import 'features/winglets/services/data_service.dart';
 
 void main() {
-  setupLocator();
-  runApp(const MyApp());
+  runApp(
+    const ProviderScope(
+      child: MyApp(),
+    ),
+  );
 }
 
 class MyApp extends StatelessWidget {
@@ -14,16 +16,13 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final dataService = getIt<DataService>();
-
-    return WingletProvider(
-      dataService: dataService,
-      child: MaterialApp.router(
-        title: 'prac8',
-        debugShowCheckedModeBanner: false,
-        theme: ThemeData(primarySwatch: Colors.blue),
-        routerConfig: appRouter,
+    return MaterialApp.router(
+      title: 'prac9',
+      debugShowCheckedModeBanner: false,
+      theme: ThemeData(
+        primarySwatch: Colors.blue,
       ),
+      routerConfig: appRouter,
     );
   }
 }

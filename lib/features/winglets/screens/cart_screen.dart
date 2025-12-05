@@ -1,34 +1,39 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import '../services/data_service.dart';
+
+import '../providers/cart_provider.dart';
 import '../../../utils/format_utils.dart';
 
-class CartScreen extends StatefulWidget {
-  final Map<String, dynamic> order;
-  final DataService dataService;
-
-  const CartScreen({super.key, required this.order, required this.dataService});
+class CartScreen extends ConsumerWidget {
+  const CartScreen({super.key});
 
   @override
-  State<CartScreen> createState() => _CartScreenState();
-}
+  Widget build(BuildContext context, WidgetRef ref) {
+    final order = ref.watch(cartStateProvider);
 
-class _CartScreenState extends State<CartScreen> {
-  @override
-  void dispose() {
-    widget.dataService.addToHistory(widget.order);
-    super.dispose();
-  }
+    if (order == null) {
+      return Scaffold(
+        appBar: AppBar(
+          title: const Text('Результат заказа'),
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back),
+            onPressed: () => context.pushReplacement('/products'),
+          ),
+        ),
+        body: const Center(child: Text('Нет данных для отображения')),
+      );
+    }
 
-  @override
-  Widget build(BuildContext context) {
-    final order = widget.order;
     return Scaffold(
       appBar: AppBar(
         title: const Text('Результат заказа'),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
-          onPressed: () => context.pop(),
+          onPressed: () {
+            ref.read(cartStateProvider.notifier).clear();
+            context.pushReplacement('/products');
+          },
         ),
       ),
       body: Center(
@@ -38,25 +43,17 @@ class _CartScreenState extends State<CartScreen> {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               const Text(
-                'Заказ оформлен успешно!',
+                'Заказ успешно оформлен!',
                 style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 20),
               Text('Товар: ${order['name']}',
-                  style: const TextStyle(fontSize: 18),
-                  textAlign: TextAlign.center),
+                  style: const TextStyle(fontSize: 18)),
               Text('Количество: ${order['quantity']}',
-                  style: const TextStyle(fontSize: 18),
-                  textAlign: TextAlign.center),
+                  style: const TextStyle(fontSize: 18)),
               Text('Дата: ${formatDate(order['date'])}',
-                  style: const TextStyle(fontSize: 16),
-                  textAlign: TextAlign.center),
-              const SizedBox(height: 30),
-              ElevatedButton(
-                onPressed: () => context.pushReplacement('/products'),
-                child: const Text('Вернуться в каталог'),
-              ),
+                  style: const TextStyle(fontSize: 16)),
             ],
           ),
         ),
